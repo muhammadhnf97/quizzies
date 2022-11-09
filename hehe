@@ -1,0 +1,73 @@
+import React, {useEffect, useState} from "react"
+import { nanoid } from "nanoid"
+import HomePage from "./components/HomePage"
+import QuizPage from "./components/QuizPage"
+
+export default function App(){
+
+  const [isQuizPage, setIsQuizPage] = useState(false)
+  const [isHomePage, setIsHomePage] = useState(true)
+
+  const [pullFormAPI, setPullFormAPI] = useState([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemPerPage] = useState(5)
+  
+  useEffect(()=>{
+    fetch('https://opentdb.com/api.php?amount=10&category=9')
+      .then((response) => response.json())
+      .then((data) => setPullFormAPI(data.results));
+  }, [])
+  
+  const filterQuestion = pullFormAPI.map(data=>{
+    let answer = [...data.incorrect_answers]
+    let randomNumber = Math.floor(Math.random()*answer.length)
+    answer.splice(randomNumber,0, data.correct_answer)
+
+    return {
+      id: nanoid(),
+      question : data.question,
+      correctAnswer : data.correct_answer,
+      renderAnswer : answer,
+      playerAnswer : null,
+      questionComplete : false
+    }
+  })
+
+  const indexOfLastPage = currentPage * itemPerPage
+  const indexOfFirstPage = indexOfLastPage - itemPerPage
+  const currentItem = filterQuestion.slice(indexOfFirstPage, indexOfLastPage)
+  const allPostLength = filterQuestion.length
+
+  function btnStart(){
+    setIsHomePage(false)
+    setIsQuizPage(true)
+  }
+
+  function answerQuestion(answer, id){
+    for(let i=0;i<filterQuestion.length;i++){
+      if(filterQuestion[i].id === id){
+        filterQuestion[i].playerAnswer = answer
+        if(filterQuestion[i].correctAnswer === filterQuestion[i].playerAnswer){
+          filterQuestion[i].questionComplete = true
+        }
+      }
+      console.log(filterQuestion[i])
+    }
+  }
+  const bgStyle = {
+    backgroundImage:"url(./assets/image/bg.jpg)"
+  }
+
+  console.log(filterQuestion)
+  return(
+    <main className="w-screen h-screen max-h-fit relative bg-cover bg-center shadow-md" style={bgStyle}>
+      <div className="w-2/5 max-w-5xl max-h-fit absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-md">
+        {isHomePage && <HomePage btnStart={btnStart}/>}
+        {isQuizPage && <QuizPage 
+        currentItem={currentItem}
+        allPostLength={allPostLength}
+        answerQuestion={answerQuestion}/>}
+      </div>
+    </main>
+  )
+} 
